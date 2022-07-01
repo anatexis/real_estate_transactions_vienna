@@ -8,7 +8,9 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 import datetime as dt
+import seaborn as sns
 import numpy as np
+
 
 #%%
 
@@ -148,6 +150,8 @@ def describe_column(df,column):
     '''
     return df[column].describe()
 
+#%%
+
 def plot_column(df,ycolumn, xcolumn="Erwerbsdatum"):
     '''
     plot two column of a dataframe
@@ -156,6 +160,16 @@ def plot_column(df,ycolumn, xcolumn="Erwerbsdatum"):
     '''
     df.plot.scatter(x=xcolumn, y=ycolumn)
     plt.show()
+
+#%%
+
+def column_correlation(df, column1, column2):
+    '''
+    correlation between two columns of a dataframe
+    '''
+    return df[column1].corr(df[column2])
+
+
 
 if __name__ == '__main__':
     import argparse
@@ -206,6 +220,8 @@ if __name__ == '__main__':
                         help='''plot scatter plot of two columns,y-column is by default "Erwerbsdatum" ''')
 
     parser.add_argument('-r', '--rows', type=int,help='how many rows should be shown (= will be printed on your screen!')
+
+    parser.add_argument('--corr', type=str, nargs="+", action='append',help="correlation between two columns")
 
 
     # describing groups which can not be used together
@@ -275,10 +291,11 @@ if __name__ == '__main__':
         else:
             print(df)
 
-# to do:
-# BJ richtig einlesen!
-# get some functions in that do something with the data (df.describe for some columns) correlations???
-
-# add a function to plot the data
-# add function to get address
-# change
+    if args.corr:
+        if len(args.corr[0]) == 2:
+            try:
+                print(f' The standard correlation coefficient of {args.corr[0][0]} and {args.corr[0][1]} is {column_correlation(df, args.corr[0][0], args.corr[0][1])}')
+            except:
+                print("Error: wrong column type for --corr (only numeric columns are supported)")
+        else:
+            print("Error: wrong number of arguments for --corr")
