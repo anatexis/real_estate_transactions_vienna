@@ -90,9 +90,7 @@ def show_specific_columns(df,which_colums):
     'zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code', 'Erwerbsdatum', 'Strasse', "ON", 'Gst.Fl.', 'AbbruchkostEU', 'ber. Kaufpreis', 'Bauzins'
     or a user-input list of columns (which_columns = *user input*)
     '''
-    if which_colums == [['all']]:
-        return df
-    elif which_colums == [["predefined"]]:
+    if which_colums == [["predefined"]]:
         return df[['Erwerbsdatum','zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code',  'Strasse', "ON",
      'Gst.Fl.', 'AbbruchkostEU', 'ber. Kaufpreis', 'Bauzins']]
     else:
@@ -140,7 +138,7 @@ def get_list_of_KG():
     soup = BeautifulSoup(r.text, "html.parser")
     table = soup.find("table", {"class": "wikitable sortable zebra"})
     df = pd.read_html(str(table))[0]
-    df = df.iloc[:, [0, 1, 5]]
+    df = df.iloc[:, [0, 1, 3, 5]]
     return df
 
 #%%
@@ -159,7 +157,12 @@ def plot_column(df,ycolumn, xcolumn="Erwerbsdatum"):
     one user-input column
     '''
     df.plot.scatter(x=xcolumn, y=ycolumn)
-    plt.show()
+    if args.output:
+        '''Save plot to file'''
+        plt.savefig(str(Path(args.output))+"/_"+ycolumn+"_"+xcolumn+".png")
+        print("Plot saved to " + args.output)
+    else:
+        plt.show()
 
 #%%
 
@@ -169,24 +172,57 @@ def column_correlation(df, column1, column2):
     '''
     return df[column1].corr(df[column2])
 
+#%%
 
+def correlation_matrix(df):
+    '''
+    plot correlation matrix of a dataframe
+    if filtered by KG.code, remove KG.code column bc then there is only one unique KG.code in the dataframe
+    '''
+    if args.KG:
+        df_corr_mat = df.drop(columns=["KG.Code"])
+        corr = df_corr_mat.corr()
+    else:
+        corr = df.corr()
+
+    sns.heatmap(corr, annot=True,mask=corr.isnull())
+
+    if args.output:
+        '''Save plot to file'''
+        plt.savefig(str(Path(args.output))+"/correlation_matrix.png")
+        print("Plot saved to " + args.output)
+    else:
+        plt.show()
 
 if __name__ == '__main__':
     import argparse
 
     parser = argparse.ArgumentParser(
         prog='PROG', formatter_class=argparse.RawDescriptionHelpFormatter, description=textwrap.dedent('''\
-        Explore data on purchasing prices of real estate transactions (source: land register),
+        Explore data on purchasing prices of real estate transactions in Vienna (source: land register),
         including regulations of the land use and town plan, on-site inspection etc.
         Link to original data: https://www.data.gv.at/katalog/dataset/kaufpreissammlung-liegenschaften-wien
         CC BY 4.0 „Datenquelle: Stadt Wien – data.wien.gv.at“
         
+        modules used:
         
+        pandas
+        numpy
+        matplotlib
+        requests
+        bs4
+        lxml
+                
         
-        Recomended usage:
-        First run program with "python explore_re_data.py --no-read -l" so it doesn't read the pricing data yet but you can look at the KG data
-        Decide which KG you are interested in
-        then run the program with "--read -K 1805" to read the data with KG code 1805
+                                              Recomended usage:
+        To start the tool type in "python explore_re_data.py" (if you have python 3.XX AND python 2 on your system, you 
+        may have to type in python3 instead of just python)
+        
+        In the first run, get the list of all KG codes with the options "--no-read -l". It doesn't read in the pricing 
+        data and prints the list of all KG codes. 
+        
+        Decide which KG you are interested in and run the program with the corresponding KG Code E.g.: "--read -K 1805"
+        to read the data with KG code 1805
         sort by "Bauzins" with --read -K 1805 -s "Bauzins"
         
         
@@ -197,19 +233,24 @@ if __name__ == '__main__':
     group.add_argument("-v", "--verbose", action="store_true")
     group.add_argument("-q", "--quiet", action="store_true")
 
-    parser.add_argument('--read', action='store_true',help="read in the data file")
-    parser.add_argument('--no-read', dest='read', action='store_false', help="don't read in the data file")
+    parser.add_argument('--read', action='store_true',help="read in the princing data file")
+    parser.add_argument('--no-read', dest='read', action='store_false', help='''don't read in the pricing data file and 
+    ignore all options other than -l and -o''')
     parser.set_defaults(read=True)
 
 
 
     parser.add_argument('-f', '--file', type=str, help='path to csv file')
-    parser.add_argument('-o', '--output', type=str, help='path to output file')
-    parser.add_argument('-K', '--KG', type=int, help='KG code, enter without the leading 0, (use -l to get a list of all KG codes)')
+    parser.add_argument('-o', '--output', type=str, help='''path to output file without extension, if you use this no data
+                                                         will be printed to the screen, but the data will be saved in 
+                                                         the same folder as this script''')
+    parser.add_argument('-K', '--KG', type=int, help='''KG code, enter without the leading 0, (use -l to get a list of 
+                                                        all KG codes)''')
 
     parser.add_argument('-d', '--desc', action='store_true', help='sort descending')
 
-    parser.add_argument('-l', '--list', action='store_true', help='list all KG codes')
+    parser.add_argument('-l', '--list', action='store_true', help='''Prints a list of all KG codes to the screen or to a
+                                                                  file if -o is used''')
 
     parser.add_argument('--show-columns', type=str, nargs="+", action='append',
                         help='''columns to be shown, use "all" for all columns, "predefined" for the predefined 
@@ -219,83 +260,108 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--plot', type=str, nargs="+", action='append',
                         help='''plot scatter plot of two columns,y-column is by default "Erwerbsdatum" ''')
 
-    parser.add_argument('-r', '--rows', type=int,help='how many rows should be shown (= will be printed on your screen!')
+    parser.add_argument('-r', '--rows', type=int,help='''how many rows should be shown (= will be printed on your 
+                        screen! or saved in the output file)''')
 
-    parser.add_argument('--corr', type=str, nargs="+", action='append',help="correlation between two columns")
+    parser.add_argument('--corr', type=str, nargs="+", action='append',help="Correlation between two columns")
 
 
     # describing groups which can not be used together
     group1 = parser.add_mutually_exclusive_group()
-    group1.add_argument('-s', '--sort-column', type=str, help='column to sort by (default: ascending, use -d for descending)')
+    group1.add_argument('-s', '--sort-column', type=str, help='''column to sort by (default: ascending, use -d for 
+                                                                descending)''')
     group1.add_argument('-D', '--describe-column', type=str, help='column to describe')
 
 
 
     args = parser.parse_args()
 
-    # quiet / verbose not really useful here
-    # if args.verbose:
-    #     print("Verbosity turned on.")
-    # if args.quiet:
-    #     print("Quiet mode turned on.")
-
-    if args.list:
-        KG_list = get_list_of_KG()
-        pd.set_option('display.max_rows', None)
-        print(KG_list)
-        pd.set_option('display.max_rows', 10)
-
     if args.read:
         if args.file:
             df = read_csv(args.file)
-
         else:
             df = read_csv()
 
-    if args.KG:
-        df = show_certain_KG(df, args.KG)
 
-    if args.show_columns:
-        print(args.show_columns)
-        df = show_specific_columns(df, args.show_columns)
+        if args.KG:
+            df = show_certain_KG(df, args.KG)
 
-    if not args.desc:
-        args.desc = False  # default is ascending
+        if args.show_columns:
+            print(args.show_columns)
+            df = show_specific_columns(df, args.show_columns)
 
-
-    if args.sort_column:
-        print(args.desc)
-        df = sort_by_column(df, args.sort_column, args.desc)
-
-    if args.describe_column:
-        pd.set_option('display.float_format', lambda x: '%.2f' % x)
-        df = describe_column(df, args.describe_column)
-
-    if args.rows:
-        pd.set_option('display.max_rows', args.rows)
-        df = df.head(args.rows)
-
-    # does not work yet
-    if args.plot:
-        if len(args.plot[0]) == 1:
-            plot_column(df, args.plot[0][0])
-        elif len(args.plot[0]) == 2:
-            plot_column(df, args.plot[0][1], args.plot[0][0])
-        else:
-            print("Error: wrong number of arguments for --plot")
+        if not args.desc:
+            args.desc = False  # default is ascending
 
 
-    if args.read:
+        if args.sort_column:
+            print(args.desc)
+            df = sort_by_column(df, args.sort_column, args.desc)
+
+        if args.describe_column:
+            pd.set_option('display.float_format', lambda x: '%.2f' % x)
+            desc_df = describe_column(df, args.describe_column)
+            if args.output:
+                file_path = Path(args.output+"/description_of_" + args.describe_column+ ".csv")
+                desc_df.to_csv(file_path)
+                print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"")
+            else:
+                print(desc_df)
+
+        if args.rows:
+            pd.set_option('display.max_rows', args.rows)
+            df = df.head(args.rows)
+
+        # does not work yet
+        if args.plot:
+            if len(args.plot[0]) == 1:
+                plot_column(df, args.plot[0][0])
+            elif len(args.plot[0]) == 2:
+                plot_column(df, args.plot[0][1], args.plot[0][0])
+            else:
+                print("Error: wrong number of arguments for --plot")
+
+
+
         if args.output:
-            df.to_csv(args.output, index=False)
+            file_path = Path(args.output+"/exported_df.csv")
+            df.to_csv(file_path, index=False)
+            print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"")
         else:
             print(df)
 
-    if args.corr:
-        if len(args.corr[0]) == 2:
-            try:
-                print(f' The standard correlation coefficient of {args.corr[0][0]} and {args.corr[0][1]} is {column_correlation(df, args.corr[0][0], args.corr[0][1])}')
-            except:
-                print("Error: wrong column type for --corr (only numeric columns are supported)")
-        else:
-            print("Error: wrong number of arguments for --corr")
+        if args.corr:
+            if len(args.corr[0]) == 2:
+                try:
+                    print(f' The standard correlation coefficient of {args.corr[0][0]} and {args.corr[0][1]} is {column_correlation(df, args.corr[0][0], args.corr[0][1])}')
+                except:
+                    print("Error: wrong column type for --corr (only numeric columns are supported)")
+            else:
+                print("Error: wrong number of arguments for --corr")
+
+
+    else:
+        print("No pricing data read in")
+
+        if args.list:
+            KG_list = get_list_of_KG()
+            if args.output:
+                KG_list.to_csv(Path(args.output+"_list_of_KG_codes.csv"))
+                print("The KG data has been saved to: " + str(Path(args.output+"list_of_KG_codes.csv")))
+            else:
+                pd.set_option('display.max_rows', None)
+                print(KG_list)
+                pd.set_option('display.max_rows', 10)
+
+# to do:
+# - add opiton to search for street name
+# show all columns with predefined
+# rows add to help
+# show-columnsa add to help
+# is -d really descending?
+
+# describe everything better!!
+
+# correlation matrix for "predefined" columns
+
+
