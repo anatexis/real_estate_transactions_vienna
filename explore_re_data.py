@@ -59,7 +59,7 @@ def read_csv(path = "https://go.gv.at/l9kaufpreissammlungliegenschaften"):
         # if "Erwerbsdatum" is later than dt.today (e.g. if the data is from the future),
         # the date is set to null
         df["Erwerbsdatum"] = df["Erwerbsdatum"].where(df["Erwerbsdatum"] <= dt.datetime.today(), None)
-
+        df["Strasse"] = df["Strasse"].astype(str).apply(lambda x: x.upper()) # for address search
 
         # Get Baujahr to just show the year, use Int64 bc there are NAs in the data
         df["BJ"] = pd.to_datetime(df["BJ"], format='%Y', errors='coerce').dt.year.astype("Int64")
@@ -193,6 +193,16 @@ def correlation_matrix(df):
         print("Plot saved to " + args.output)
     else:
         plt.show()
+#%%
+
+def filter_for_address(df, address):
+    '''
+    filter dataframe for address
+    '''
+    df_address = df[df["Strasse"].str.contains(address)]
+    return df_address
+
+
 
 if __name__ == '__main__':
     import argparse
@@ -245,7 +255,15 @@ if __name__ == '__main__':
                                                          will be printed to the screen, but the data will be saved in 
                                                          the same folder as this script''')
     parser.add_argument('-K', '--KG', type=int, help='''KG code, enter without the leading 0, (use -l to get a list of 
-                                                        all KG codes)''')
+                                                        all KG codes)
+                                                        If you use -K and -a together the dataframe will be first 
+                                                        filtered for the KG Code and then for the address''')
+
+    parser.add_argument('-a', '--address', type=str, help='''Enter (part of) an address to filter the dataframe
+                                                            for that address. If you use -K and -a together 
+                                                            the dataframe will be first filterd for the KG Code and 
+                                                            then for the address''')
+
 
     parser.add_argument('-d', '--desc', action='store_true', help='sort descending')
 
@@ -263,7 +281,12 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--rows', type=int,help='''how many rows should be shown (= will be printed on your 
                         screen! or saved in the output file)''')
 
-    parser.add_argument('--corr', type=str, nargs="+", action='append',help="Correlation between two columns")
+    parser.add_argument('--corr-c', type=str, nargs="+", action='append', help="Correlation between two columns")
+
+    parser.add_argument('--corr-m', action='store_true', help='''plot correlation matrix of all columns of the dataframe 
+                                                            can be messy if there are many columns, use "predefined"''')
+
+
 
 
     # describing groups which can not be used together
@@ -285,6 +308,9 @@ if __name__ == '__main__':
 
         if args.KG:
             df = show_certain_KG(df, args.KG)
+
+        if args.address:
+            df = filter_for_address(df, args.address)
 
         if args.show_columns:
             print(args.show_columns)
@@ -323,6 +349,7 @@ if __name__ == '__main__':
 
 
 
+
         if args.output:
             file_path = Path(args.output+"/exported_df.csv")
             df.to_csv(file_path, index=False)
@@ -330,14 +357,18 @@ if __name__ == '__main__':
         else:
             print(df)
 
-        if args.corr:
-            if len(args.corr[0]) == 2:
+        if args.corr_c:
+            if len(args.corr_c[0]) == 2:
                 try:
-                    print(f' The standard correlation coefficient of {args.corr[0][0]} and {args.corr[0][1]} is {column_correlation(df, args.corr[0][0], args.corr[0][1])}')
+                    print(f' The standard correlation coefficient of {args.corr_c[0][0]} and {args.corr_c[0][1]} is '
+                          f'{column_correlation(df, args.corr_c[0][0], args.corr_c[0][1])}')
                 except:
-                    print("Error: wrong column type for --corr (only numeric columns are supported)")
+                    print("Error: wrong column type for --corr-c (only numeric columns are supported)")
             else:
-                print("Error: wrong number of arguments for --corr")
+                print("Error: wrong number of arguments for --corr-c")
+
+        if args.corr_m:
+            correlation_matrix(df)
 
 
     else:
@@ -354,6 +385,7 @@ if __name__ == '__main__':
                 pd.set_option('display.max_rows', 10)
 
 # to do:
+# add corr matrix to argparse!
 # - add opiton to search for street name
 # show all columns with predefined
 # rows add to help
