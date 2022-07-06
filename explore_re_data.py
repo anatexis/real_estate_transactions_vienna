@@ -32,8 +32,8 @@ def read_csv(path = "https://go.gv.at/l9kaufpreissammlungliegenschaften"):
     loc_path = Path(csv_file)
 
     if loc_path.is_file():
-        print(f'The file {csv_file} has already been downloaded')
-        print(f"Reading data from {loc_path}")
+        print(f'\nThe file {csv_file} has already been downloaded')
+        print(f"Reading data from {loc_path}\n")
 
         df = pd.read_csv(csv_file, sep=";", encoding="Latin-1", low_memory=False, parse_dates=["Erwerbsdatum", "BJ"])
 
@@ -52,7 +52,7 @@ def read_csv(path = "https://go.gv.at/l9kaufpreissammlungliegenschaften"):
                                     "Kaufpreis EUR",
                                     "EUR/m2 Gfl.", "AbbruchfixEU", "m3 Abbruch", "AbbruchkostEU", "FreimachfixEU",
                                     "Freimachfläche", "FreimachkostEU", "Baureifgest", "% Widmung", "Baurecht", "Bis",
-                                    "auf EZ", "Stammeinlage", "sonst_wid", "sonst_wid_prz", "ber. Kaufpreis",
+                                    "auf EZ", "Stammeinlage", "sonst_wid", "sonst_wid_prz", "ber_Kaufpreis",
                                     "Bauzins"], parse_dates=["BJ"])
 
         df["Erwerbsdatum"] = pd.to_datetime(df["Erwerbsdatum"].astype(str), format='%d%m%Y.0', errors='coerce')
@@ -87,12 +87,12 @@ def show_specific_columns(df,which_colums):
     ''' return dataframe with certain columns
     either all columns (which_columns = "all")
     the following columns (which_columns = "predefined")
-    'zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code', 'Erwerbsdatum', 'Strasse', "ON", 'Gst.Fl.', 'AbbruchkostEU', 'ber. Kaufpreis', 'Bauzins'
+    'zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code', 'Erwerbsdatum', 'Strasse', "ON", 'Gst.Fl.', 'AbbruchkostEU', 'ber_Kaufpreis', 'Bauzins'
     or a user-input list of columns (which_columns = *user input*)
     '''
     if which_colums == [["predefined"]]:
         return df[['Erwerbsdatum','zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code',  'Strasse', "ON",
-     'Gst.Fl.', 'AbbruchkostEU', 'ber. Kaufpreis', 'Bauzins']]
+     'Gst.Fl.', 'AbbruchkostEU', 'ber_Kaufpreis', 'Bauzins']]
     else:
         which_colums = which_colums[0]
         return df[which_colums]
@@ -199,7 +199,8 @@ def filter_for_address(df, address):
     '''
     filter dataframe for address
     '''
-    df_address = df[df["Strasse"].str.contains(address)]
+
+    df_address = df[df["Strasse"].str.contains(address.upper())]
     return df_address
 
 
@@ -214,22 +215,18 @@ if __name__ == '__main__':
         Link to original data: https://www.data.gv.at/katalog/dataset/kaufpreissammlung-liegenschaften-wien
         CC BY 4.0 „Datenquelle: Stadt Wien – data.wien.gv.at“
         
-        modules used:
-        
-        pandas
-        numpy
-        matplotlib
-        requests
-        bs4
-        lxml
-                
+        Known bugs/limitations:
+        -Tested only on Linux, not on Windows.
+        -If you want to save a plot you have to use '-o "."' as command line argument for the plot to be saved to the 
+        current folder. If you specify another path, there will be an error. 
+         
         
                                               Recomended usage:
         To start the tool type in "python explore_re_data.py" (if you have python 3.XX AND python 2 on your system, you 
         may have to type in python3 instead of just python)
         
         In the first run, get the list of all KG codes with the options "--no-read -l". It doesn't read in the pricing 
-        data and prints the list of all KG codes. 
+        data and prints the list of all KG codes or saves it to a csv file if you specify the option -o "path/to/file/"
         
         Decide which KG you are interested in and run the program with the corresponding KG Code E.g.: "--read -K 1805"
         to read the data with KG code 1805
@@ -251,9 +248,9 @@ if __name__ == '__main__':
 
 
     parser.add_argument('-f', '--file', type=str, help='path to csv file')
-    parser.add_argument('-o', '--output', type=str, help='''path to output file without extension, if you use this no data
-                                                         will be printed to the screen, but the data will be saved in 
-                                                         the same folder as this script''')
+    parser.add_argument('-o', '--output', type=str, help='''path to output file without extension, if you use this no 
+                                                         data will be printed to the screen, but the data will be saved 
+                                                         in the same folder as this script''')
     parser.add_argument('-K', '--KG', type=int, help='''KG code, enter without the leading 0, (use -l to get a list of 
                                                         all KG codes)
                                                         If you use -K and -a together the dataframe will be first 
@@ -295,11 +292,11 @@ if __name__ == '__main__':
                                                                 descending)''')
     group1.add_argument('-D', '--describe-column', type=str, help='column to describe')
 
-
-
     args = parser.parse_args()
 
-    if args.read:
+
+    if args.read: # if read is true, read in and explore the data, plot, etc.
+
         if args.file:
             df = read_csv(args.file)
         else:
@@ -313,7 +310,6 @@ if __name__ == '__main__':
             df = filter_for_address(df, args.address)
 
         if args.show_columns:
-            print(args.show_columns)
             df = show_specific_columns(df, args.show_columns)
 
         if not args.desc:
@@ -321,7 +317,10 @@ if __name__ == '__main__':
 
 
         if args.sort_column:
-            print(args.desc)
+            if args.desc:
+                print(f"Sorting by '{args.sort_column}' descending\n")
+            else:
+                print(f"Sorting by '{args.sort_column}' ascending\n")
             df = sort_by_column(df, args.sort_column, args.desc)
 
         if args.describe_column:
@@ -330,9 +329,10 @@ if __name__ == '__main__':
             if args.output:
                 file_path = Path(args.output+"/description_of_" + args.describe_column+ ".csv")
                 desc_df.to_csv(file_path)
-                print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"")
+                print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"\n")
             else:
                 print(desc_df)
+                print("\n")
 
         if args.rows:
             pd.set_option('display.max_rows', args.rows)
@@ -345,33 +345,32 @@ if __name__ == '__main__':
             elif len(args.plot[0]) == 2:
                 plot_column(df, args.plot[0][1], args.plot[0][0])
             else:
-                print("Error: wrong number of arguments for --plot")
-
-
+                print("Error: wrong number of arguments for --plot\n")
 
 
         if args.output:
             file_path = Path(args.output+"/exported_df.csv")
             df.to_csv(file_path, index=False)
-            print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"")
+            print("The data has been saved to: " + str(file_path.parent) + " as \"" + str(file_path.name)+"\"\n")
         else:
             print(df)
+            print("\n")
 
         if args.corr_c:
             if len(args.corr_c[0]) == 2:
                 try:
                     print(f' The standard correlation coefficient of {args.corr_c[0][0]} and {args.corr_c[0][1]} is '
-                          f'{column_correlation(df, args.corr_c[0][0], args.corr_c[0][1])}')
+                          f'{column_correlation(df, args.corr_c[0][0], args.corr_c[0][1])}\n')
                 except:
-                    print("Error: wrong column type for --corr-c (only numeric columns are supported)")
+                    print("Error: wrong column type for --corr-c (only numeric columns are supported)\n")
             else:
-                print("Error: wrong number of arguments for --corr-c")
+                print("Error: wrong number of arguments for --corr-c\n")
 
         if args.corr_m:
             correlation_matrix(df)
 
 
-    else:
+    else: # if args.read is False (--no-read)
         print("No pricing data read in")
 
         if args.list:
@@ -385,15 +384,8 @@ if __name__ == '__main__':
                 pd.set_option('display.max_rows', 10)
 
 # to do:
-# add corr matrix to argparse!
-# - add opiton to search for street name
-# show all columns with predefined
-# rows add to help
-# show-columnsa add to help
-# is -d really descending?
-
-# describe everything better!!
-
-# correlation matrix for "predefined" columns
+# describe help better - more examples
+# try out on windows?
+# upload it before 23:59
 
 
