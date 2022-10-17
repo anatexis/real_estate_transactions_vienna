@@ -14,8 +14,6 @@ import numpy as np
 
 #%%
 
-#fertig glaube ich
-
 def read_csv(path = "https://go.gv.at/l9kaufpreissammlungliegenschaften"):
     '''
     Read the data of real estate transaction from the internet (default)
@@ -129,7 +127,7 @@ def show_certain_KG(df, KG_code, column="KG.Code"):
 def get_list_of_KG():
     '''
     scrape the KG from https://de.wikipedia.org/wiki/Wiener_Katastralgemeinden with BeautifulSoup
-    and return a dataframe with the KG code, name, and area.
+    and return a dataframe with the KG code, name, municipal districts, and area.
     '''
     import requests
     from bs4 import BeautifulSoup
@@ -157,6 +155,7 @@ def plot_column(df,ycolumn, xcolumn="Erwerbsdatum"):
     one user-input column
     '''
     df.plot.scatter(x=xcolumn, y=ycolumn)
+    plt.title(f'{ycolumn} vs {xcolumn}')
     if args.output:
         '''Save plot to file'''
         plt.savefig(str(Path(args.output))+"/_"+ycolumn+"_"+xcolumn+".png")
@@ -186,6 +185,7 @@ def correlation_matrix(df):
         corr = df.corr()
 
     sns.heatmap(corr, annot=True,mask=corr.isnull())
+    plt.title("Correlation Matrix")
 
     if args.output:
         '''Save plot to file'''
@@ -217,8 +217,10 @@ if __name__ == '__main__':
         
         Known bugs/limitations:
         -Tested only on Linux, not on Windows.
-        -If you want to save a plot you have to use '-o "."' as command line argument for the plot to be saved to the 
-        current folder. If you specify another path, there will be an error. 
+        -If you want to save a plot you have to use '-o "./"' as command line argument for the plot to be saved to the 
+        current folder. If you specify another path, there will be an error. Saving a .csv file works fine.
+        - probably hard to use if you don't speak German which I realized just now and don't have the time to translate 
+        it
          
         
                                               Recomended usage:
@@ -228,17 +230,44 @@ if __name__ == '__main__':
         In the first run, get the list of all KG codes with the options "--no-read -l". It doesn't read in the pricing 
         data and prints the list of all KG codes or saves it to a csv file if you specify the option -o "path/to/file/"
         
-        Decide which KG you are interested in and run the program with the corresponding KG Code E.g.: "--read -K 1805"
-        to read the data with KG code 1805
-        sort by "Bauzins" with --read -K 1805 -s "Bauzins"
+        Now you can explore the dataset:
+        --KG 1805 -> filter the data for the KG with code 1805
         
+        -a "Mariahilfer" -> filter the data for a specific street (here: every address with Mariahilfer in it)
         
-                
+        --show-columns "predefined" -> show only the predefined columns ('zuordnung', 'BJ', 'Gebäudehöhe', 'KG.Code', 
+            'Erwerbsdatum', 'Strasse', "ON", 'Gst.Fl.', 'AbbruchkostEU', 'ber_Kaufpreis', 'Bauzins')
+            
+        --show-columns "KG.Code" "Katastralgemeinde" "EZ" "PLZ" "Strasse" "ON" "Gst." "Gst.Fl." "ErwArt" 
+                        "Erwerbsdatum" "Widmung" "Bauklasse" "Gebäudehöhe" "Bauweise" "Zusatz" "Schutzzone" 
+                        "Wohnzone" "öZ" "Bausperre" "seit/bis" "zuordnung" "Geschoße" "parz." "VeräußererCode" 
+                        "Erwerbercode" "Zähler" "Nenner" "BJ" "TZ" "Kaufpreis EUR""EUR/m2 Gfl." "AbbruchfixEU" 
+                        "m3 Abbruch" "AbbruchkostEU" "FreimachfixEU""Freimachfläche" "FreimachkostEU" 
+                        "Baureifgest" "% Widmung" "Baurecht" "Bis" "auf EZ" "Stammeinlage" "sonst_wid" 
+                        "sonst_wid_prz" "ber_Kaufpreis" "Bauzins" -> will show all columns (which is the default, but so
+                        you can see which columns are available)
+                        
+        -p "ber_Kaufpreis" -> will plot the two columns "ber_Kaufpreis" and "Erwerbsdatum" (default for the x-axis is 
+            "Erwerbsdatum" but you can specify any other column)
+            
+        --corr-c "Erwerbsdatum" "Bauzins" -> will show the correlation between the two columns "Erwerbsdatum" and
+            "Bauzins"
+        
+        --corr-m -> will show the correlation matrix of the dataframe, can be messy if there are many columns,
+            use with e.g. --show-columns "predefined"
+        
+        -r 100 -> will show the dataframe with the first 100 rows, will print all of them to the screen!
+        
+        -o "./" -> will save the output(s) to the current folder
+        
+        Those two options are mutually exclusive:
+        -s "Bauzins" -> sort the data by column "Bauzins" (ascending)
+        -D "Bauzins" -> describe the column "Bauzins" (mean, std, min, max, etc.) 
+        
+        -s "Bauzins" -d -> sort descending
+        
      '''))
 
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", action="store_true")
-    group.add_argument("-q", "--quiet", action="store_true")
 
     parser.add_argument('--read', action='store_true',help="read in the princing data file")
     parser.add_argument('--no-read', dest='read', action='store_false', help='''don't read in the pricing data file and 
@@ -246,9 +275,8 @@ if __name__ == '__main__':
     parser.set_defaults(read=True)
 
 
-
     parser.add_argument('-f', '--file', type=str, help='path to csv file')
-    parser.add_argument('-o', '--output', type=str, help='''path to output file without extension, if you use this no 
+    parser.add_argument('-o', '--output', type=str, help='''path to output file folder, if you use this no 
                                                          data will be printed to the screen, but the data will be saved 
                                                          in the same folder as this script''')
     parser.add_argument('-K', '--KG', type=int, help='''KG code, enter without the leading 0, (use -l to get a list of 
@@ -282,9 +310,6 @@ if __name__ == '__main__':
 
     parser.add_argument('--corr-m', action='store_true', help='''plot correlation matrix of all columns of the dataframe 
                                                             can be messy if there are many columns, use "predefined"''')
-
-
-
 
     # describing groups which can not be used together
     group1 = parser.add_mutually_exclusive_group()
