@@ -12,7 +12,7 @@ Link to original data: https://www.data.gv.at/katalog/dataset/kaufpreissammlung-
 
 - Tested only on Linux, not on Windows.
 - If you want to save a plot you have to use `-o "./"` as command line argument for the plot to be saved to the current folder. If you specify another path, there will be an error. Saving a .csv file works fine.
-- probably hard to use if you don't speak German which I realized just now and don't have the time to translate it
+- probably hard to use if you don't speak German, see table at the bottom for a rough translation of the codes
 
 ## Recomended usage:
 
@@ -58,3 +58,46 @@ Those two options are mutually exclusive:
 - `--corr-m`: Plot correlation matrix of all columns of the dataframe can be messy if there are many columns, use `"predefined"`
 - `-s SORT_COLUMN`, `--sort-column SORT_COLUMN`: Column to sort by (default: ascending, use `-d` for descending)
 - `-D DESCRIBE_COLUMN`, `--describe-column DESCRIBE_COLUMN`: Select which column to describe
+
+
+## English Translation of Codes
+
+| Abbreviation | Full Name |
+|--------------|-----------|
+| KG.Code | Katastralgemeindenummer (Cadastre Municipality Number) |
+| Katastralgemeinde | Katastralgemeindename (Cadastre Municipality Name) |
+| EZ | Einlagezahl (Deposit Number) |
+| PLZ | Postleitzahl (Postal Code) |
+| ON | Orientierungsnummer (Orientation Number) |
+| Gst. | Grundstücksnummer (Property Number) |
+| Gst.Fl. | Grundstücksfläche (Land Area) |
+| ErwArt | Erwerbsart (Acquisition Type: Purchase Agreement, Municipal Council Resolution, etc.) |
+| Schutzzone | Schutzzone (Protected Zone) |
+| Wohnzone | Wohnzone (Residential Zone) |
+| ÖZ | Örtliches Raumordnungsprogramm (Local Spatial Planning Program) |
+| Bausperre | Bausperre (Building Restriction) |
+| parz. | parzelliert (parceled), unparzelliert (not parceled) |
+| VeräußererCode | Veräußerercode (Seller Code) see below|
+| Erwerbercode | Erwerbercode (Buyer Code) see below |
+| Anteile | Anteile (Shares) |
+| Zähler | Zähler (Numerator) |
+| Nenner | Nenner (Denominator) |
+| BJ | Baujahr (Year of Construction) |
+| TZ | Tagebuchzahl (Journal Number) |
+| €/m² Gfl. | Kaufpreis pro m² Grundfläche in EUR (Purchase Price per Square Meter of Land Area in EUR) |
+| Baureifgest | Baureifgestaltung (Development-ready Land) |
+| % Widmung | Widmungsanteil (Zoning Share) |
+| Baurecht | Baurecht (Building Right) |
+| Stammeinlage | Stammeinlage (Capital Stock) |
+| sonst_wid | sonstige Widmung (Other Zoning) |
+| sonst_wid_prz | Anteil der sonstigen Widmung in % (Share of Other Zoning in %) |
+
+Buyer/Seller Code:
+
+| Code | Full Name |
+|------|-----------|
+| 1, 2, 4, 5, 6, 7, 10, 11, 12, 14 | Gebietskörperschaften und juristische Personen mit öffentlichem Charakter (e.g., Municipalities, States, Federal Government, Vienna Utilities, Austrian Federal Railways, etc.) |
+| 3 | gemeinnützige Bauvereinigungen (e.g., Housing Cooperatives) |
+| 8 | juristische Personen des Privatrechtes (e.g., Limited Liability Companies, Partnerships, Corporations, etc.) |
+| 9 | Privatperson (Private Individual) |
+| 13 | Bescheid Adressaten (e.g., Monetary Payment/Compensation... based on a decision in the course of creating building sites according to building regulations) |
